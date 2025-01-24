@@ -3,49 +3,149 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Кадастровая карта</title>
+  <title>Кадастровая информация</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
+    /* Стили оформления страницы */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .input-section {
+      margin-bottom: 20px;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 16px;
+      margin-right: 10px;
+      width: 300px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .info-section {
+      margin-top: 20px;
+      text-align: left;
+    }
+
     #mapContainer {
-      width: 100%;
       height: 400px;
-      margin: 20px auto;
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
     }
   </style>
-  <!-- Подключение Яндекс.Карт -->
-  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
 </head>
 <body>
-  <h1>Кадастровая карта</h1>
-  <div id="mapContainer"></div>
+  <div class="container">
+    <h1>Интерактивная кадастровая карта</h1>
+    <div class="input-section">
+      <label for="cadastralNumber">Введите кадастровый номер:</label>
+      <input type="text" id="cadastralNumber" placeholder="78:36:0000000:0010">
+      <button id="searchButton">Показать данные</button>
+    </div>
+    <div class="info-section" id="infoSection" style="display: none;">
+      <p><strong>Кадастровый номер:</strong> <span id="number"></span></p>
+      <p><strong>Площадь:</strong> <span id="area"></span> м²</p>
+      <p><strong>Назначение:</strong> <span id="purpose"></span></p>
+    </div>
+    <div id="mapContainer" style="display: none;"></div>
+  </div>
 
+  <!-- Подключаем библиотеку Leaflet -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    // Инициализация карты
-    ymaps.ready(init);
-
-    function init() {
-      // Координаты участка (например, Невский проспект)
-      const coordinates = [59.939095, 30.315868];
-
-      // Создание карты
-      const map = new ymaps.Map("mapContainer", {
-        center: coordinates,
-        zoom: 15
-      });
-
-      // Добавление маркера
-      const placemark = new ymaps.Placemark(
-        coordinates,
-        {
-          balloonContent: "Невский проспект<br>Кадастровый номер: 78:36:0000000:0010"
+    // Когда страница загрузилась
+    document.addEventListener("DOMContentLoaded", () => {
+      // Данные участков в Санкт-Петербурге
+      const cadastralData = {
+        "78:36:0000000:0010": {
+          area: 1200,
+          purpose: "ИЖС",
+          coordinates: [59.939095, 30.315868] // Невский проспект
         },
-        {
-          preset: "islands#redDotIcon"
+        "78:36:0000000:0020": {
+          area: 1800,
+          purpose: "Коммерческое",
+          coordinates: [59.934280, 30.335099] // Казанский собор
+        },
+        "78:36:0000000:0030": {
+          area: 2500,
+          purpose: "Сельское хозяйство",
+          coordinates: [59.950015, 30.316599] // Петропавловская крепость
         }
-      );
+      };
 
-      // Добавление маркера на карту
-      map.geoObjects.add(placemark);
-    }
+      // Элементы страницы
+      const searchButton = document.getElementById("searchButton");
+      const infoSection = document.getElementById("infoSection");
+      const mapContainer = document.getElementById("mapContainer");
+
+      // Обработка клика по кнопке
+      searchButton.addEventListener("click", () => {
+        const cadastralNumber = document.getElementById("cadastralNumber").value;
+
+        // Если кадастровый номер найден
+        if (cadastralData[cadastralNumber]) {
+          const data = cadastralData[cadastralNumber];
+
+          // Отображаем информацию
+          document.getElementById("number").textContent = cadastralNumber;
+          document.getElementById("area").textContent = data.area;
+          document.getElementById("purpose").textContent = data.purpose;
+          infoSection.style.display = "block";
+
+          // Отображаем карту
+          mapContainer.style.display = "block";
+          mapContainer.innerHTML = ""; // Очищаем карту перед обновлением
+          const map = L.map('mapContainer').setView(data.coordinates, 15);
+
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+          }).addTo(map);
+
+          L.marker(data.coordinates).addTo(map)
+            .bindPopup(
+              `Кадастровый номер: ${cadastralNumber}<br>` +
+              `Площадь: ${data.area} м²<br>` +
+              `Назначение: ${data.purpose}`
+            )
+            .openPopup();
+        } else {
+          alert("Участок с таким кадастровым номером не найден.");
+        }
+      });
+    });
   </script>
 </body>
 </html>
